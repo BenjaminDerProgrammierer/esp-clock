@@ -6,36 +6,70 @@
 #ifndef _MY_SENSOR_H_
 #define _MY_SENSOR_H_
 
+#include <Adafruit_BME280.h>
+#include <Adafruit_Sensor.h>
 #include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
 
 #define SEALEVELPRESSURE_HPA (1013.25)
-#define MY_BME280_ADDRESS 0x76  // Default I2C address for BME280
-Adafruit_BME280 bme;
 
-/**
- * Initialize the BME280 sensor.
- */
-void initBME280() {
-  if (!bme.begin(MY_BME280_ADDRESS)) {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-    while (1); // Loop forever
-  }
-}
+class MySensor {
+   private:
+    uint8_t _address;
+    Adafruit_BME280 _bme;
 
-/**
- * Print BME280 sensor values to the Serial Monitor.
- */
-void printSensorValues() {
-  Serial.printf("BME280 Sensor Values:\n");
-  Serial.printf("Temperature = %.2f °C\n", bme.readTemperature());
-  Serial.printf("Temperature = %.2f °F\n", 1.8 * bme.readTemperature() + 32);
-  Serial.printf("Pressure = %.2f hPa\n", bme.readPressure() / 100.0F);
-  Serial.printf("Approx. Altitude = %.2f m\n", bme.readAltitude(SEALEVELPRESSURE_HPA));
-  Serial.printf("Humidity = %.2f %%\n", bme.readHumidity());
-  Serial.println();
-}
+   public:
+    MySensor(uint8_t address = 0x76) : _address(address) {}
+
+    /**
+     * Initialize the BME280 sensor.
+     */
+    void begin() {
+        if (!_bme.begin(_address)) {
+            Serial.println(
+                "Could not find a valid BME280 sensor, check wiring!");
+            while (1);
+        }
+    }
+
+    /**
+     * Print BME280 sensor values to the Serial Monitor.
+     */
+    void printValues() {
+        Serial.println("BME280 Sensor Values:");
+        Serial.printf("Temperature = %.2f °C\n", readTemperatureC());
+        Serial.printf("Temperature = %.2f °F\n", readTemperatureF());
+        Serial.printf("Pressure = %.2f hPa\n", readPressure());
+        Serial.printf("Approx. Altitude = %.2f m\n", readAltitude());
+        Serial.printf("Humidity = %.2f %%\n", readHumidity());
+        Serial.println();
+    }
+
+    /**
+     * Read temperature in Celsius.
+     */
+    float readTemperatureC() { return _bme.readTemperature(); }
+
+    /**
+     * Read temperature in Fahrenheit.
+     *
+     */
+    float readTemperatureF() { return 1.8 * _bme.readTemperature() + 32; }
+
+    /**
+     * Read pressure in hPa.
+     */
+    float readPressure() { return _bme.readPressure() / 100.0F; }
+
+    /**
+     * Read humidity in percentage.
+     */
+    float readHumidity() { return _bme.readHumidity(); }
+
+    /**
+     * Read altitude in meters.
+     */
+    float readAltitude() { return _bme.readAltitude(SEALEVELPRESSURE_HPA); }
+};
 
 #endif  // _MY_SENSOR_H_

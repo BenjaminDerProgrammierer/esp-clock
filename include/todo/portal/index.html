@@ -1,30 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP8266 WiFi Setup</title>
     <link rel="stylesheet" href="/portal.css">
 </head>
+
 <body>
     <div class="container">
         <h1>WiFi Configuration</h1>
         <div id="message" class="message"></div>
-        
+
         <form id="wifiForm">
             <div class="form-group">
                 <label for="ssid">WiFi Network (SSID):</label>
                 <input type="text" id="ssid" name="ssid" required autofocus>
             </div>
-            
+
             <div class="form-group">
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            
+
             <button type="submit" class="btn">Connect</button>
         </form>
-        
+
         <div class="networks">
             <h2>Available Networks</h2>
             <div id="networkList" class="network-list">
@@ -33,7 +35,8 @@
             <button id="refreshBtn" class="btn btn-secondary">Refresh Networks</button>
         </div>
     </div>
-    
+
     <script src="/portal.js"></script>
 </body>
+
 </html>
