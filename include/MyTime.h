@@ -23,13 +23,12 @@ class MyTime {
         struct tm timeinfo;
 
         configTime(0, 0, "pool.ntp.org");
+        setTimezone(_timezone);
 
         if (!getLocalTime(&timeinfo)) {
             Serial.println("Failed to obtain time");
             return;
         }
-
-        setTimezone(_timezone);
 
         Serial.printf("Time initialized: %s\n", getLocalTimeString().c_str());
     }

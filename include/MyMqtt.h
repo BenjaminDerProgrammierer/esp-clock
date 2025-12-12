@@ -108,8 +108,6 @@ class MyMqtt {
                     Serial.println();
                 }
             });
-
-        connect();
     }
 
     /**

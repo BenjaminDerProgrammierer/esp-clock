@@ -34,7 +34,7 @@ Additionally you will need a Breadboard and some jumper wires.
 
 ## Secrets
 
-You'll need to create a `MqttCredentials.h` and `WiFiCredentials.h` file in the `include` folder with the following content:
+You'll need to create a `MqttCredentials.h` (and `WiFiCredentials.h` if you don't use the WiFi manager) file in the `include` folder with the following content:
 
 ```cpp
 // MqttCredentials.h
@@ -47,3 +47,7 @@ You'll need to create a `MqttCredentials.h` and `WiFiCredentials.h` file in the 
 #define MY_SSID "ssid"
 #define MY_PASSWORD "password"
 ```
+
+## TODOs
+
+* 11/12/17+ WebServer

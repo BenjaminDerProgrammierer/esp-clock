@@ -1,5 +1,5 @@
 /**
- * MyWifiManager.h
+ * MySmarterWifi.h
  * Benjamin Hartmann | 11/2025
  *
  * WiFi Manager with captive portal for ESP8266
@@ -26,7 +26,7 @@
 #define CONNECT_TIMEOUT 20000  // ms
 #define CREDENTIALS_FILE "/wifi_config.json"
 
-class MyWifiManager : public MyWifi {
+class MySmarterWifi : public MyWifi {
    private:
     // Access Point Configuration
     IPAddress apIP;
@@ -111,10 +111,9 @@ class MyWifiManager : public MyWifi {
 
         webServer = new ESP8266WebServer(WEB_SERVER_PORT);
 
-        webServer->serveStatic("/", LittleFS, "/www/portal/index.html");
-        webServer->serveStatic("/portal.css", LittleFS,
-                               "/www/portal/portal.css");
-        webServer->serveStatic("/portal.js", LittleFS, "/www/portal/portal.js");
+        webServer->serveStatic("/", LittleFS, "/portal/index.html");
+        webServer->serveStatic("/style.css", LittleFS, "/portal/style.css");
+        webServer->serveStatic("/script.js", LittleFS, "/portal/script.js");
 
         // API: Get available networks
         webServer->on("/networks", HTTP_GET, [this]() { handleNetworkScan(); });
@@ -142,11 +141,11 @@ class MyWifiManager : public MyWifi {
         Serial.println("[WiFiManager] Scanning networks...");
         int n = WiFi.scanNetworks();
 
-        DynamicJsonDocument doc(2048);
+        JsonDocument doc;
         JsonArray networks = doc.to<JsonArray>();
 
         for (int i = 0; i < n; i++) {
-            JsonObject network = networks.createNestedObject();
+            JsonObject network = networks.add<JsonObject>();
             network["ssid"] = WiFi.SSID(i);
             network["rssi"] = WiFi.RSSI(i);
             network["encryption"] = (WiFi.encryptionType(i) == ENC_TYPE_NONE)
@@ -173,7 +172,7 @@ class MyWifiManager : public MyWifi {
             return;
         }
 
-        DynamicJsonDocument doc(512);
+        JsonDocument doc;
         DeserializationError error =
             deserializeJson(doc, webServer->arg("plain"));
 
@@ -277,7 +276,7 @@ class MyWifiManager : public MyWifi {
      * Save WiFi credentials to LittleFS
      */
     bool saveCredentials(const String& ssid, const String& password) {
-        DynamicJsonDocument doc(512);
+        JsonDocument doc;
         doc["ssid"] = ssid;
         doc["password"] = password;
 
@@ -310,7 +309,7 @@ class MyWifiManager : public MyWifi {
             return false;
         }
 
-        DynamicJsonDocument doc(512);
+        JsonDocument doc;
         DeserializationError error = deserializeJson(doc, file);
         file.close();
 
@@ -335,7 +334,7 @@ class MyWifiManager : public MyWifi {
      * @param _apSsid Access Point SSID (default: ESP8266-Setup)
      * @param _apPassword Access Point password (default: empty/open)
      */
-    MyWifiManager(IPAddress _apIP = IPAddress(192, 168, 4, 1),
+    MySmarterWifi(IPAddress _apIP = IPAddress(192, 168, 4, 1),
                   IPAddress _netMask = IPAddress(255, 255, 255, 0),
                   String _apSsid = AP_SSID, String _apPassword = AP_PASSWORD)
         : apIP(_apIP),
@@ -352,30 +351,12 @@ class MyWifiManager : public MyWifi {
             return;
         }
         Serial.println("[WiFiManager] LittleFS mounted");
-
-        // Try to connect with saved credentials
-        String savedSSID, savedPassword;
-        if (loadCredentials(savedSSID, savedPassword)) {
-            if (tryConnectToWiFi(savedSSID, savedPassword)) {
-                // Successfully connected - stay in STA mode, no AP needed
-                return;
-            }
-        }
-
-        // No saved credentials or connection failed - start AP mode
-        Serial.println("[WiFiManager] Starting configuration mode");
-        startAP();
-        startDNSServer();
-        startWebServer();
-
-        // Start async network scan
-        WiFi.scanNetworks(true);
     }
 
     /**
      * Destructor - clean up resources
      */
-    ~MyWifiManager() { stopAP(); }
+    ~MySmarterWifi() { stopAP(); }
 
     /**
      * Main loop - must be called regularly from main loop
@@ -408,7 +389,44 @@ class MyWifiManager : public MyWifi {
             // Restart network scan
             WiFi.scanNetworks(true);
         }
+
+        if (millis() - _lastWifiCheckTime > 3000) {
+            if (WiFi.status() != WL_CONNECTED && !isAPMode) {
+                Serial.println("WiFi connection lost. Reconnecting...");
+                connect();
+            }
+            _lastWifiCheckTime = millis();
+        }
     }
+
+    void connect(IPAddress ip, IPAddress gateway, IPAddress subnet,
+                 IPAddress dns) {
+        if (isAPMode || getConnectedState()) return;
+
+        // Try to connect with saved credentials
+        String savedSSID, savedPassword;
+        if (loadCredentials(savedSSID, savedPassword)) {
+            if (tryConnectToWiFi(savedSSID, savedPassword)) {
+                // Successfully connected - stay in STA mode, no AP needed
+                return;
+            }
+        }
+
+        // No saved credentials or connection failed - start AP mode
+        Serial.println("[WiFiManager] Starting configuration mode");
+        startAP();
+        startDNSServer();
+        startWebServer();
+
+        // Start async network scan
+        WiFi.scanNetworks(true);
+    }
+
+    void connect() {
+        connect(IPAddress(), IPAddress(), IPAddress(), IPAddress());
+    }
+
+    void ensureConnected() {}
 
     /**
      * Check if in configuration mode (AP mode)
@@ -420,7 +438,19 @@ class MyWifiManager : public MyWifi {
      * Get Access Point IP (when in config mode)
      * @return AP IP address as string
      */
-    String getAPIP() { return apIP.toString(); }
+    String getApIp() { return apIP.toString(); }
+
+    String getApSSID() { return apSsid; }
+
+    /**
+     * Get Access Point Password
+     */
+    String getApPassword() {
+        if (apPassword.length() == 0) {
+            return "none";
+        }
+        return apPassword;
+    }
 
     /**
      * Reset saved credentials and restart in config mode
@@ -440,18 +470,7 @@ class MyWifiManager : public MyWifi {
             startWebServer();
         }
     }
+
 };
 
 #endif  // _MY_WIFI_MANAGER_H_
-
-// class MyWifi {
-//  protected:
-//   unsigned long _lastWifiCheckTime = 0;
-
-//  public:
-//   void connectToWiFi(IPAddress ip, IPAddress gateway, IPAddress subnet,
-//   IPAddress dns) void connectToWiFi() bool getWifiConnectedState() { return
-//   WiFi.status() == WL_CONNECTED; } String getWifiSSID() { return WiFi.SSID();
-//   } String getWifiIP() { return WiFi.localIP().toString(); } String
-//   getWifiMAC() void ensureWiFiConnected()
-// };
