@@ -19,7 +19,7 @@ class MyWifi {
      * Connect to a WiFi network using the predefined credentials from
      * ``WifiCredentials.h``.
      */
-    void connectToWiFi(IPAddress ip, IPAddress gateway, IPAddress subnet,
+    void connect(IPAddress ip, IPAddress gateway, IPAddress subnet,
                        IPAddress dns) {
         WiFi.begin(MY_WIFI_SSID, MY_WIFI_PASSWORD);
         if (ip && gateway && subnet && dns) {
@@ -31,17 +31,20 @@ class MyWifi {
             Serial.print(".");
         }
         Serial.println(" - Connected to WiFi!");
+
+        // WiFi.setAutoReconnect(true);
+        // WiFi.persistent(true);
     }
 
-    void connectToWiFi() {
-        connectToWiFi(IPAddress(), IPAddress(), IPAddress(), IPAddress());
+    void connect() {
+        connect(IPAddress(), IPAddress(), IPAddress(), IPAddress());
     }
 
     /**
      * Get the current WiFi connection status.
      * @return true if connected, false otherwise
      */
-    bool getWifiConnectedState() { return WiFi.status() == WL_CONNECTED; }
+    bool getConnectedState() { return WiFi.status() == WL_CONNECTED; }
 
     /**
      * Get the current WiFi SSID.
@@ -65,11 +68,11 @@ class MyWifi {
      * Ensure the WiFi connection is active, reconnecting if necessary. To be
      * placed in the main loop.
      */
-    void ensureWiFiConnected() {
+    void ensureConnected() {
         if (millis() - _lastWifiCheckTime > 3000) {
             if (WiFi.status() != WL_CONNECTED) {
                 Serial.println("WiFi connection lost. Reconnecting...");
-                connectToWiFi();
+                connect();
             }
             _lastWifiCheckTime = millis();
         }

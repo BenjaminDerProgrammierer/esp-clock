@@ -33,7 +33,7 @@ void setup() {
     display.begin();
     display.scanI2C();
     display.showWiFiInfo();
-    wifi.connectToWiFi();
+    wifi.connect();
     theTime.begin();
     mqtt.begin();
 }
@@ -42,7 +42,7 @@ void loop() {
     // Serial.printf("WiFi Connected: %s, SSID: %s, IP: %s, MAC: %s\n", wifi.getWifiConnectedState() ? "Yes" : "No", wifi.getWifiSSID().c_str(), wifi.getWifiIP().c_str(), wifi.getWifiMAC().c_str());
     // sensor.printValues();
     // Serial.printf("The current time is %s.\n", theTime.getLocalTimeString().c_str());
-    wifi.ensureWiFiConnected();
+    wifi.ensureConnected();
     mqtt.loop();
 
     switch (state) {
@@ -52,7 +52,7 @@ void loop() {
                 sensor.readPressure(), sensor.readAltitude());
             break;
         case 1:
-            if (wifi.getWifiConnectedState()) {
+            if (wifi.getConnectedState()) {
                 display.showWiFiInfo(true, wifi.getWifiSSID(),
                                      wifi.getWifiIP());
 
