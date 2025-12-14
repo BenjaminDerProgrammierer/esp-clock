@@ -51,7 +51,7 @@ class MyDisplay {
      * I2C Scanner: prints to Serial.
      */
     void scanI2C() {
-        Serial.println("I2C Scanner");
+        Serial.println("[I2C Scanner] I2C devices found:");
         Wire.begin();
 
         uint8_t count = 0;
@@ -59,13 +59,13 @@ class MyDisplay {
         for (uint8_t i = 1; i < 120; i++) {
             Wire.beginTransmission(i);
             if (Wire.endTransmission() == 0) {
-                Serial.printf("- Found address: %d (0x%02X)\n", i, i);
+                Serial.printf("[I2C Scanner] Found address: %d (0x%02X)\n", i, i);
                 count++;
                 delay(1);
             }
         }
 
-        Serial.printf("Done. Found %d device(s).\n", count);
+        Serial.printf("[I2C Scanner] Done. Found %d device(s).\n", count);
     }
 
     /**
