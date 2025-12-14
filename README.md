@@ -50,4 +50,4 @@ You'll need to create a `MqttCredentials.h` (and `WiFiCredentials.h` if you don'
 
 ## TODOs
 
-* 11/12/17+ WebServer
+* OTA Updates via Webserver

@@ -10,6 +10,7 @@
 #include "MySensor.h"
 #include "MySmarterWifi.h"
 #include "MyTime.h"
+#include "MySensorWebserver.h"
 
 #define TZ "CET-1CEST,M3.5.0,M10.5.0/3"  // Europe/Vienna
 
@@ -18,6 +19,7 @@ MyDisplay display = MyDisplay();
 MySmarterWifi wifi = MySmarterWifi();
 MyTime theTime = MyTime(TZ);  // variable name "time" is already taken.
 MyMqtt mqtt = MyMqtt("ESP8266", "Bedroom", "My_SmartHome/Benjamin/");
+MySensorWebserver server = MySensorWebserver();
 
 int state = 0;
 unsigned long lastAction1s = 0;
@@ -32,7 +34,7 @@ void setup() {
     display.begin();
     display.scanI2C();
     display.showWiFiInfo();
-    wifi.ensureConnected();
+    wifi.connect();
     theTime.begin();
     mqtt.begin();
 }
@@ -102,8 +104,9 @@ void loop() {
     }
 
     if (!wifi.getConnectedState()) return;
-
+    if (!server.isBegun) server.begin();
     mqtt.loop();
+    server.sendEvents(sensor.readTemperatureC(), sensor.readTemperatureF(), sensor.readHumidity(), sensor.readPressure(), sensor.readAltitude());
 
     if (millis() - lastAction1s > 1000 && wifi.getConnectedState()) {
         mqtt.publishSensorData(sensor.readTemperatureC(), sensor.readHumidity(),
