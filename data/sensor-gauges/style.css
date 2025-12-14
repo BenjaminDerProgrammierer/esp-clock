@@ -1,0 +1,100 @@
+:root {
+    --header-bg-color: #4CAF50;
+
+    --temperature-color: #FF5722;
+    --humidity-color: #2196F3;
+    --pressure-color: #9C27B0;
+    --altitude-color: #FF9800;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+header {
+    background-color: var(--header-bg-color);
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+
+    h1 {
+        margin-bottom: 10px;
+    }
+
+    p {
+        margin-bottom: 10px;
+    }
+
+    select {
+        background-color: transparent;
+        border: 1px solid white;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+}
+
+main {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    max-width: 660px;
+    margin: 0 auto;
+}
+
+.card {
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    flex: 1 1 calc(33% - 40px);
+    min-width: 250px;
+    text-align: center;
+    max-width: 300px;
+    margin: 0 auto;
+
+    h2 { 
+        margin-bottom: 15px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        svg {
+            /* Lucide Icon */
+            margin-right: 3px;
+        }
+    }
+
+    p.data {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+
+    &:has(#temperature-c) {
+        color: var(--temperature-color);
+    }
+
+    &:has(#humidity) {
+        color: var(--humidity-color);
+    }
+
+    &:has(#pressure) {
+        color: var(--pressure-color);
+    }
+
+    &:has(#altitude) {
+        color: var(--altitude-color);
+    }
+}

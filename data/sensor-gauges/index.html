@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ESP Sensor</title>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    
+    <!-- JSCharting Charts -->
+    <script src="https://code.jscharting.com/latest/jscharting.js"></script>
+    <script type="text/javascript" src="https://code.jscharting.com/latest/modules/types.js"></script>
+
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <h1>ESP Sensor</h1>
+      <p id="sensor-status">Status unknown</p>
+      <select name="unit-select" id="unit-select">
+        <option value="C">Temperature in °C</option>
+        <option value="F">Temperature in °F</option>
+      </select>
+    </header>
+    <main>
+      <div class="card">
+        <h2><i data-lucide="thermometer"></i>Temperature</h2>
+        <div id="gauge-temperature"></div>
+        <p class="data unit-c" style="display: none;"><span id="temperature-c">--</span> °C</p>
+        <p class="data unit-f" style="display: none;"><span id="temperature-f">--</span> °F</p>
+      </div>
+      <div class="card">
+        <h2><i data-lucide="droplets"></i>Humidity</h2>
+        <div id="gauge-humidity"></div>
+        <p class="data"><span id="humidity">--</span> %</p>
+      </div>
+      <div class="card">
+        <h2><i data-lucide="circle-gauge"></i>Pressure</h2>
+        <div id="gauge-pressure"></div>
+        <p class="data"><span id="pressure">--</span> hPa</p>
+      </div>
+      <div class="card">
+        <h2><i data-lucide="mountain-snow"></i>Altitude</h2>
+        <div id="gauge-altitude"></div>
+        <p class="data"><span id="altitude">--</span> m</p>
+      </div>
+    </main>
+  </body>
+</html>
