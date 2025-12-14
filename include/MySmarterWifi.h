@@ -12,7 +12,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <DNSServer.h>
-#include <ESP8266WebServer.h>
+#include <ESPAsyncWebServer.h>
 #include <ESP8266WiFi.h>
 #include <LittleFS.h>
 
@@ -36,7 +36,7 @@ class MySmarterWifi : public MyWifi {
 
     // Server components (only active in AP mode)
     DNSServer* dnsServer;
-    ESP8266WebServer* webServer;
+    AsyncWebServer* webServer;
 
     // Connection state
     bool isAPMode;
@@ -83,7 +83,7 @@ class MySmarterWifi : public MyWifi {
         }
 
         if (webServer) {
-            webServer->stop();
+            webServer->end();
             delete webServer;
             webServer = nullptr;
         }
@@ -109,25 +109,39 @@ class MySmarterWifi : public MyWifi {
     void startWebServer() {
         if (webServer) return;
 
-        webServer = new ESP8266WebServer(WEB_SERVER_PORT);
+        webServer = new AsyncWebServer(WEB_SERVER_PORT);
 
-        webServer->serveStatic("/", LittleFS, "/portal/index.html");
-        webServer->serveStatic("/style.css", LittleFS, "/portal/style.css");
-        webServer->serveStatic("/script.js", LittleFS, "/portal/script.js");
+        // Serve portal directory with index.html as default
+        webServer->serveStatic("/", LittleFS, "/portal/").setDefaultFile("index.html");
 
         // API: Get available networks
-        webServer->on("/networks", HTTP_GET, [this]() { handleNetworkScan(); });
+        webServer->on("/networks", HTTP_GET, [this](AsyncWebServerRequest* request) { handleNetworkScan(request); });
 
-        // API: Connect to WiFi
-        webServer->on("/connect", HTTP_POST, [this]() { handleConnect(); });
+        // API: Connect to WiFi (with body handler for JSON)
+        webServer->on("/connect", HTTP_POST, 
+            [this](AsyncWebServerRequest* request) { handleConnect(request); },
+            NULL,
+            [this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+                // Store body data for processing in handleConnect
+                if (index == 0) {
+                    pendingSSID = "";
+                    pendingPassword = "";
+                }
+                // Parse JSON from body
+                JsonDocument doc;
+                DeserializationError error = deserializeJson(doc, data, len);
+                if (!error) {
+                    pendingSSID = doc["ssid"].as<String>();
+                    pendingPassword = doc["password"].as<String>();
+                }
+            });
 
         // Captive Portal API (RFC 8908)
         webServer->on("/captive-portal/api", HTTP_GET,
-                      [this]() { handleCaptivePortalAPI(); });
+                      [this](AsyncWebServerRequest* request) { handleCaptivePortalAPI(request); });
 
         // Handle 404 - redirect to portal
-        webServer->onNotFound([this]() { handleNotFound(); });
-
+        webServer->onNotFound([this](AsyncWebServerRequest* request) { handleNotFound(request); });
         webServer->begin();
         Serial.println("[WiFiManager] Web server started");
     }
@@ -135,16 +149,35 @@ class MySmarterWifi : public MyWifi {
     /**
      * Handle network scan request
      */
-    void handleNetworkScan() {
+    void handleNetworkScan(AsyncWebServerRequest* request) {
         if (!webServer) return;
 
         Serial.println("[WiFiManager] Scanning networks...");
-        int n = WiFi.scanNetworks();
+        
+        int n = WiFi.scanComplete();
+        
+        if (n == WIFI_SCAN_RUNNING || n == WIFI_SCAN_FAILED) {
+            WiFi.scanDelete();
+            WiFi.scanNetworks(true);
 
+            unsigned long startTime = millis();
+            while (WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
+                if (millis() - startTime > 10000) {
+                    // Timeout after 10 seconds
+                    request->send(200, "application/json", "[]");
+                    return;
+                }
+                yield();
+                delay(100);
+            }
+            
+            n = WiFi.scanComplete();
+        }
+        
         JsonDocument doc;
         JsonArray networks = doc.to<JsonArray>();
 
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < n && i >= 0; i++) {
             JsonObject network = networks.add<JsonObject>();
             network["ssid"] = WiFi.SSID(i);
             network["rssi"] = WiFi.RSSI(i);
@@ -156,37 +189,21 @@ class MySmarterWifi : public MyWifi {
         String response;
         serializeJson(doc, response);
 
-        webServer->send(200, "application/json", response);
+        request->send(200, "application/json", response);
+        
         WiFi.scanDelete();
+        WiFi.scanNetworks(true);
     }
 
     /**
      * Handle WiFi connection request
      */
-    void handleConnect() {
+    void handleConnect(AsyncWebServerRequest* request) {
         if (!webServer) return;
 
-        if (!webServer->hasArg("plain")) {
-            webServer->send(400, "application/json",
-                            "{\"success\":false,\"message\":\"No data\"}");
-            return;
-        }
-
-        JsonDocument doc;
-        DeserializationError error =
-            deserializeJson(doc, webServer->arg("plain"));
-
-        if (error) {
-            webServer->send(400, "application/json",
-                            "{\"success\":false,\"message\":\"Invalid JSON\"}");
-            return;
-        }
-
-        pendingSSID = doc["ssid"].as<String>();
-        pendingPassword = doc["password"].as<String>();
-
+        // Data is parsed in the body handler
         if (pendingSSID.length() == 0) {
-            webServer->send(
+            request->send(
                 400, "application/json",
                 "{\"success\":false,\"message\":\"SSID required\"}");
             return;
@@ -196,8 +213,8 @@ class MySmarterWifi : public MyWifi {
                       pendingSSID.c_str());
 
         // Send immediate response
-        webServer->send(200, "application/json",
-                        "{\"success\":true,\"message\":\"Connecting...\"}");
+        request->send(200, "application/json",
+                      "{\"success\":true,\"message\":\"Connecting...\"}");
 
         shouldTryConnect = true;
     }
@@ -205,7 +222,7 @@ class MySmarterWifi : public MyWifi {
     /**
      * Handle captive portal API request (RFC 8908)
      */
-    void handleCaptivePortalAPI() {
+    void handleCaptivePortalAPI(AsyncWebServerRequest* request) {
         if (!webServer) return;
 
         bool captive = (WiFi.status() != WL_CONNECTED);
@@ -215,30 +232,31 @@ class MySmarterWifi : public MyWifi {
         json += captive ? "true" : "false";
         json += ",\"user-portal-url\":\"" + userPortalUrl + "\"}";
 
-        webServer->sendHeader("Cache-Control", "private");
-        webServer->send(200, "application/captive+json", json);
+        AsyncWebServerResponse* response = request->beginResponse(200, "application/captive+json", json);
+        response->addHeader("Cache-Control", "private");
+        request->send(response);
     }
 
     /**
      * Handle 404 - redirect to portal
      */
-    void handleNotFound() {
+    void handleNotFound(AsyncWebServerRequest* request) {
         if (!webServer) return;
 
         Serial.printf("[WiFiManager] 404: %s from %s\n",
-                      webServer->uri().c_str(),
-                      webServer->hostHeader().c_str());
+                      request->url().c_str(),
+                      request->host().c_str());
 
         // If requesting captive portal API, handle it
-        if (webServer->uri().startsWith("/captive-portal/api")) {
-            handleCaptivePortalAPI();
+        if (request->url().startsWith("/captive-portal/api")) {
+            handleCaptivePortalAPI(request);
             return;
         }
 
-        // Otherwise redirect to portal
-        webServer->sendHeader("Location",
-                              String("http://") + apIP.toString() + "/", true);
-        webServer->send(302, "text/plain", "");
+        // Redirect all other requests to portal (handles captive portal detection)
+        AsyncWebServerResponse* response = request->beginResponse(302, "text/plain", "");
+        response->addHeader("Location", String("http://") + apIP.toString() + "/");
+        request->send(response);
     }
 
     /**
@@ -257,7 +275,6 @@ class MySmarterWifi : public MyWifi {
             // Process DNS/Web requests while waiting
             if (isAPMode && dnsServer && webServer) {
                 dnsServer->processNextRequest();
-                webServer->handleClient();
             }
 
             if (WiFi.status() == WL_CONNECTED) {
@@ -365,7 +382,6 @@ class MySmarterWifi : public MyWifi {
         // Only process servers if in AP mode
         if (isAPMode) {
             if (dnsServer) dnsServer->processNextRequest();
-            if (webServer) webServer->handleClient();
         }
 
         // Handle pending connection attempt
