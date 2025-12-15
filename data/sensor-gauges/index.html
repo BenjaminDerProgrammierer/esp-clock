@@ -19,6 +19,11 @@
     <header>
       <h1>ESP Sensor</h1>
       <p id="sensor-status">Status unknown</p>
+      <form method='POST' action='/update' enctype='multipart/form-data' id="ota-update">
+        <label for="update"><i data-lucide="cloud-upload"></i>Select OTA File</label>
+        <input type='file' name='update' id='update' style="display: none;">
+        <input type='submit' value='Update'>
+      </form>
       <select name="unit-select" id="unit-select">
         <option value="C">Temperature in °C</option>
         <option value="F">Temperature in °F</option>

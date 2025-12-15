@@ -33,6 +33,33 @@ header {
         margin-bottom: 10px;
     }
 
+    #ota-update {
+        background-color: #000000aa;
+        width: fit-content;
+        margin: 0 auto;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        overflow: hidden;
+        display: flex;
+
+        label[for="update"] {
+            color: white;
+            cursor: pointer;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        input[type=submit] {
+            background-color: #00000088;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+    }
+
     select {
         background-color: transparent;
         border: 1px solid white;

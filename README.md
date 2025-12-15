@@ -47,7 +47,3 @@ You'll need to create a `MqttCredentials.h` (and `WiFiCredentials.h` if you don'
 #define MY_SSID "ssid"
 #define MY_PASSWORD "password"
 ```
-
-## TODOs
-
-* OTA Updates via Webserver
