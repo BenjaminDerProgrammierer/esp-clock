@@ -2,6 +2,10 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/BenjaminDerProgrammierer/NTP-Time)
 
+## For Midnight Reviewers
+
+As this is a hardware project, and you'll likely not have the hardware required here a demo video: <https://hc-cdn.hel1.your-objectstorage.com/s/v3/dad1670d5899b91b_20251226_213307.mp4>
+
 ## Parts required
 
 | Part | Description | aprox. cost |
